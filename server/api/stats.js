@@ -53,7 +53,7 @@ internals.applyRoutes = function (server, next) {
         },
         handler: function (request, reply) {
 
-            const userId = request.auth.credentials.roles.account._id.toString();
+            const userId = request.auth.credentials.user._id.toString();
 
             Stat.findByUserId(userId, (err, stat) => {
 
@@ -101,7 +101,7 @@ internals.applyRoutes = function (server, next) {
         },
         handler: function (request, reply) {
 
-            const userId = request.auth.credentials.roles.account._id.toString();
+            const userId = request.auth.credentials.user._id.toString();
             const stats = request.payload;
 
             Stat.create(userId, stats, (err, stat) => {
@@ -140,19 +140,21 @@ internals.applyRoutes = function (server, next) {
                         total: Joi.number().integer(),
                         matched: Joi.number().integer(),
                         wrong: Joi.number().integer()
-                    })
+                    }),
+                    status: Joi.string()
                 }
             }
         },
         handler: function (request, reply) {
 
-            const userId = request.auth.credentials.roles.account._id.toString();
+            const userId = request.auth.credentials.user._id.toString();
             const filter = { 'userId': userId.toLowerCase() };
             const update = {
                 $set: {
                     figures: request.payload.figures,
                     highscores: request.payload.highscores,
-                    flips: request.payload.flips
+                    flips: request.payload.flips,
+                    lastPlayed: new Date()
                 }
             };
 
@@ -164,8 +166,6 @@ internals.applyRoutes = function (server, next) {
 
                 reply(stat);
             });
-
-
         }
     });
 

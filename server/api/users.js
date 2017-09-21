@@ -12,7 +12,7 @@ const internals = {};
 internals.applyRoutes = function (server, next) {
 
     const User = server.plugins['hapi-mongo-models'].User;
-
+    const Stat = server.plugins['hapi-mongo-models'].Stat;
 
     server.route({
         method: 'GET',
@@ -65,6 +65,35 @@ internals.applyRoutes = function (server, next) {
         }
     });
 
+    server.route({
+        method: 'GET',
+        path: '/users/count',
+        config: {
+            auth: {
+                strategy: 'session',
+                scope: 'admin'
+            },
+            pre: [
+                AuthPlugin.preware.ensureAdminGroup('root')
+            ]
+        },
+        handler: function (request, reply) {
+
+            const query = {};
+
+            // Only count 'active' users
+            query.isActive = true;
+
+            User.count(query, (err, results) => {
+
+                if (err) {
+                    return reply(err);
+                }
+
+                reply(results);
+            });
+        }
+    });
 
     server.route({
         method: 'GET',
@@ -526,6 +555,24 @@ internals.applyRoutes = function (server, next) {
                 if (!user) {
                     return reply(Boom.notFound('Document not found.'));
                 }
+
+                // Let's delete the game statistics as well
+                const filter = { 'userId': request.params.id.toLowerCase() };
+                Stat.findOneAndDelete(filter, (err, stat) => {
+
+                    if (err) {
+                        // Don't through it back to the UI, log to output
+                        console.error(err);
+                    }
+                });
+
+                // Get the socket.io object
+                const io = request.plugins['hapi-io'].io;
+
+                // Successfully logged in, increment the login count
+                io.emit('new_user', {
+                    count: -1
+                });
 
                 reply({ success: true });
             });

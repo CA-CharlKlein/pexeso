@@ -48,8 +48,6 @@ const manifest = {
         {
             plugin: 'hapi-auth-cookie'
         },
-        //TODO: Enable this only in production
-        /*
         {
             plugin: {
                 register: 'crumb',
@@ -58,7 +56,6 @@ const manifest = {
                 }
             }
         },
-        */
         {
             plugin: {
                 register: 'visionary',
@@ -112,6 +109,12 @@ const manifest = {
                     }
                 }
             }
+        },
+        {
+            plugin: 'hapi-io'
+        },
+        {
+            plugin: './server/telemetry'
         },
         {
             plugin: './server/auth'
@@ -180,6 +183,12 @@ const manifest = {
             }
         },
         {
+            plugin: './server/api/verify-account',
+            options: {
+                routes: { prefix: '/api' }
+            }
+        },
+        {
             plugin: './server/api/users',
             options: {
                 routes: { prefix: '/api' }
@@ -187,6 +196,12 @@ const manifest = {
         },
         {
             plugin: './server/api/stats',
+            options: {
+                routes: { prefix: '/api' }
+            }
+        },
+        {
+            plugin: './server/api/monitor',
             options: {
                 routes: { prefix: '/api' }
             }

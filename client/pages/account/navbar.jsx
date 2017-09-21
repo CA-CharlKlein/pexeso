@@ -74,6 +74,10 @@ class Navbar extends React.Component {
                         </ul>
                         <ul className="nav navbar-nav navbar-right">
                             <li>
+                                <a href="https://waffle.io/jacogreyling/pexeso/join"
+                                    className="ico-logo nav-list-icon"><span>Open ticket</span></a>
+                            </li>
+                            <li>
                                 <a href="/login/logout">Sign out</a>
                             </li>
                         </ul>

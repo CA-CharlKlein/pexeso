@@ -6,7 +6,9 @@ const ParseValidation = require('../../../../helpers/parse-validation');
 const Shuffle = require('../../../../helpers/shuffle');
 
 const initialState = {
+    hydrated: false,
     active: false,
+    status: undefined,
     pairsToMatch: null,
     level: undefined,
     guess1: null,
@@ -14,6 +16,7 @@ const initialState = {
     round: 1,
     cardSize: undefined,
     cards: [],
+    flips: {},
     timestamp: undefined
 };
 const reducer = function (state = initialState, action) {
@@ -31,7 +34,7 @@ const reducer = function (state = initialState, action) {
                 break;
             case "medium":
                 number = 36;
-                pairsToMatch = 16;
+                pairsToMatch = 18;
                 break;
             case "hard":
                 number = 64;
@@ -42,44 +45,51 @@ const reducer = function (state = initialState, action) {
         }
 
         // Create the cards
-        for (let i = 0; i < number; i+=2) {
+        let code = null, count = 0;
+        for (let i = 0; i < number; i += 2) {
             let index = Math.floor(Math.random() * 10000);
 
             // Define the image to match
-            let code = i;
-            if (code < 10) {
-                code = "0" + code;
-            } else if (code == 30) {
-                code = 10;
-            } else if (code == 31) {
-                code = 21;
+            if (count < 10) {
+                code = "0" + count;
+            } else if (count == 30) {
+                code = "1a";
+            } else if (count == 31) {
+                code = "1d";
+            } else {
+                code = count;
             }
             const unicode = "0xf0" + code;
 
             cards.push({
                 id : i,
-                rel : i+1,
+                rel : i + 1,
                 flipped : false,
                 discovered : false,
                 data: String.fromCharCode(unicode)
             });
 
             cards.push({
-                id : i+1,
+                id : i + 1,
                 rel : i,
                 flipped : false,
                 discovered : false,
                 data: String.fromCharCode(unicode)
             });
+
+            count += 1;
         }
 
+        //If users' browser is using localhost
+        // Assumption is that the User is a Developer - Do not shuffle the cards
         return ObjectAssign({}, initialState, {
             active: true,
+            status: "in-progress",
             pairsToMatch: pairsToMatch,
             level: action.level,
-            cards: Shuffle(cards),
+            cards: (window.location.hostname == "localhost") ? cards : Shuffle(cards),
             cardSize: 100/Math.sqrt(number),
-            timestamp: new Date()
+            timestamp: action.timeNow
         });
     }
 
@@ -101,11 +111,18 @@ const reducer = function (state = initialState, action) {
                     return card.id === action.id ?
                     ObjectAssign({}, card, { flipped: true }) :
                     ObjectAssign({}, card, { flipped: false })
-                })
+                }),
+                flips: {
+                    total: isNaN(state.flips.total) ? state.flips.total = 1 : state.flips.total += 1,
+                    matched: state.flips.matched,
+                    wrong: state.flips.wrong
+                }
             });
 
         // Second card selected
         } else {
+
+            // Find the correct card match
             let cardClicked = state.cards.find((card) => {
                 return card.id === action.id;
             });
@@ -113,8 +130,11 @@ const reducer = function (state = initialState, action) {
             // It is a match!
             if (cardClicked.rel === state.guess1) {
 
+                const pairsToMatch = state.pairsToMatch -= 1;
+
                 return ObjectAssign({}, state, {
-                    pairsToMatch: state.pairsToMatch - 1,
+                    status: pairsToMatch === 0 ? "won" : state.status,
+                    pairsToMatch: pairsToMatch,
                     guess1: state.guess1,
                     guess2: cardClicked.rel,
                     round: round,
@@ -122,7 +142,12 @@ const reducer = function (state = initialState, action) {
                         return (card.id === action.id || card.id === state.guess1) ?
                         ObjectAssign({}, card, { flipped: true, discovered: true }) :
                         card
-                    })
+                    }),
+                    flips: {
+                        total: state.flips.total ,
+                        matched: isNaN(state.flips.matched) ? state.flips.matched = 1 : state.flips.matched += 1,
+                        wrong: state.flips.wrong
+                    }
                 });
 
             // Nope continue trying
@@ -136,7 +161,12 @@ const reducer = function (state = initialState, action) {
                         return card.id === action.id ?
                         ObjectAssign({}, card, { flipped: true }) :
                         card
-                    })
+                    }),
+                    flips: {
+                        total: state.flips.total += 1,
+                        matched: state.flips.matched,
+                        wrong: isNaN(state.flips.wrong) ? state.flips.wrong = 1 : state.flips.wrong += 1
+                    }
                 })
             }
         }
@@ -157,7 +187,30 @@ const reducer = function (state = initialState, action) {
     if (action.type === Constants.END_GAME) {
 
         return ObjectAssign({}, state, {
+            active: false
+        })
+    }
+
+    if (action.type === Constants.UPDATE_STATUS) {
+
+        return ObjectAssign({}, state, {
+            status: action.status
+        })
+    }
+
+    if (action.type === Constants.UPDATE_HYDRATED) {
+
+        return ObjectAssign({}, state, {
+            hydrated: true
+        })
+    }
+
+    if (action.type === Constants.END_GAME_UPDATE_STATUS) {
+
+        return ObjectAssign({}, state, {
             active: false,
+            hydrated: true,
+            status: action.status
         })
     }
 

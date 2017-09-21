@@ -24,8 +24,8 @@ const config = {
     baseUrl: {
         $filter: 'env',
         $meta: 'values should not end in "/"',
-        production: 'https://AWS URL Goes Here',
-        $default: 'http://127.0.0.1:8000'
+        production: process.env.PUBLIC_URL,
+        $default: 'http://localhost:8000'
     },
     authAttempts: {
         forIp: 50,

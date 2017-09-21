@@ -25,7 +25,7 @@ select, textarea, input, .form-control {
         .navbar-logo {
             position: relative;
             display: inline-block;
-            top: -4px;
+            top: -5px;
             height: 32px;
             width: 32px;
         }
@@ -79,7 +79,14 @@ select, textarea, input, .form-control {
     border-color: #57676d;
 }
 
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: #feca35;
+    border-color: #feca35;
+}
+
+.btn-primary:active,
+.btn-primary.active {
     background-color: #feca35;
     border-color: #feca35;
 }
@@ -105,6 +112,32 @@ fieldset[disabled] .btn-primary:focus,
 .btn-primary.disabled.focus,
 .btn-primary.focus[disabled],
 fieldset[disabled] .btn-primary.focus {
+    background-color: #57676d;
+    border-color: #57676d;
+}
+
+.btn-success:active:hover,
+.btn-success.active:hover,
+.open > .dropdown-toggle.btn-success:hover,
+.btn-success:active:focus,
+.btn-success.active:focus,
+.open > .dropdown-toggle.btn-success:focus,
+.btn-success.focus:active,
+.btn-success.active.focus,
+.open > .dropdown-toggle.btn-success.focus {
+    background-color: #fec425;
+    border-color: #fec425;
+}
+
+.btn-success.disabled:hover,
+.btn-success[disabled]:hover,
+fieldset[disabled] .btn-success:hover,
+.btn-success.disabled:focus,
+.btn-success[disabled]:focus,
+fieldset[disabled] .btn-success:focus,
+.btn-success.disabled.focus,
+.btn-success.focus[disabled],
+fieldset[disabled] .btn-success.focus {
     background-color: #57676d;
     border-color: #57676d;
 }
@@ -160,4 +193,82 @@ a:hover, a:focus {
     color: #8a6d3b;
 }
 
+.alert-info {
+    background-color: #fff4d6;
+    border-color: #ffe7a3;
+    color: #8a6d3b;
+}
+
 /* End of styling */
+
+/* Used for the waffle.io icon */
+@font-face {
+    font-family: "icomoon";
+    src: url("/public/media/fonts/icomoon.eot");
+    src: url("/public/media/fonts/icomoon.eot?#iefix") format("embedded-opentype"),
+         url("/public/media/fonts/icomoon.woff") format("woff"),
+         url("/public/media/fonts/icomoon.ttf") format("truetype"),
+         url("/public/media/fonts/icomoon.svg#icomoon") format("svg");
+    font-weight:normal;
+    font-style:normal;
+}
+[class*=" ico-"],[class^=ico-] {
+ font-family:icomoon;
+ speak:none;
+ font-variant:normal;
+ text-transform:none;
+ line-height:1;
+ display:inline-block;
+ -webkit-font-smoothing:antialiased;
+}
+.ico-logo:before {
+ content:"\E600"
+}
+.nav-list-icon {
+    font-size: 28px;
+    line-height: 50px;
+    padding: 0 15px;
+    vertical-align: middle;
+    text-align: center;
+    width: 40px;
+    color: #000;
+    outline: 0;
+    width: 50px;
+}
+.navbar-nav .nav-list-icon span {
+    color: #777;
+    font-size: 13px;
+    line-height: 20px;
+    position: relative;
+    display: block;
+    padding: 10px 15px;
+    box-sizing: border-box;
+    font-family: Arial,Helvetica,sans-serif;
+    text-decoration: none;
+    -webkit-font-smoothing: auto;
+    -webkit-font-kerning: auto;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+.navbar-nav .nav-list-icon span:hover {
+    color: #333;
+    background-color: transparent;
+    outline-offset: -2px;
+    outline: 0;
+}
+@media all and (max-width: 768px) and (min-width: 0px) {
+    .ico-logo:before {
+        display: none;
+    };
+    .navbar-nav > li > a.nav-list-icon{
+        width: 100%;
+        text-align: left;
+    }
+    .navbar-nav .nav-list-icon span {
+        padding: 0px;
+    }
+}
+@media all and (min-width: 768px) {
+    .navbar-nav .nav-list-icon span {
+        display: none;
+    }
+}

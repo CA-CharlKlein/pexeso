@@ -17,6 +17,7 @@ class HomePage extends React.Component {
 
         super(props);
 
+        // Retrieve the statistics
         Actions.getStats();
 
         this.state = Store.getState();
@@ -48,12 +49,11 @@ class HomePage extends React.Component {
                 <div className="game">
 
                     <Board
-                        {...this.state.board}
-                        statistics={this.state.stats}/>
+                        {...this.state.board}/>
 
                     <Tiles
                         {...this.state.tiles}
-                        boardActive={this.state.board.active}
+                        active={this.state.board.active}
                         statistics={this.state.stats}/>
                 </div>
             </section>
