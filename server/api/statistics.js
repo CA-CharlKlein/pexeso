@@ -1,11 +1,10 @@
 'use strict';
 
 const Async = require('async');
-const AuthPlugin = require('../auth');
 const Boom = require('boom');
-const EscapeRegExp = require('escape-string-regexp');
+const Hoek = require('hoek');
 const Joi = require('joi');
-
+const Md5 = require('../../node_modules/blueimp-md5/js/md5');
 
 const internals = {};
 
@@ -14,6 +13,8 @@ internals.applyRoutes = function (server, next) {
 
     const Statistic = server.plugins['hapi-mongo-models'].Statistic;
     const Score = server.plugins['hapi-mongo-models'].Score;
+    const Account = server.plugins['hapi-mongo-models'].Account;
+    const Event = server.plugins['hapi-mongo-models'].Event;
 
 
     server.route({
@@ -55,6 +56,7 @@ internals.applyRoutes = function (server, next) {
         handler: function (request, reply) {
 
             const userId = request.auth.credentials.user._id.toString();
+            const username = request.auth.credentials.user.username.toString();
 
             Statistic.findByUserId(userId, (err, stat) => {
 
@@ -63,7 +65,7 @@ internals.applyRoutes = function (server, next) {
                 }
 
                 if (!stat) {
-                    return reply(Boom.notFound('Document not found.'));
+                    return reply(Boom.notFound(`Document for ${username} not found.`));
                 }
 
                 reply(stat);
@@ -89,32 +91,56 @@ internals.applyRoutes = function (server, next) {
                     }),
                     highscores: Joi.object().keys({
                         casual: Joi.object().keys({
-                            score: Joi.number().integer(),
+                            score: Joi.number().integer()
                         }),
                         medium: Joi.object().keys({
-                            score: Joi.number().integer(),
+                            score: Joi.number().integer()
                         }),
                         hard: Joi.object().keys({
-                            score: Joi.number().integer(),
-                        }),
+                            score: Joi.number().integer()
+                        })
                     }),
                     flips: Joi.object().keys({
                         total: Joi.number().integer(),
                         matched: Joi.number().integer(),
                         wrong: Joi.number().integer()
-                    }),
-                    status: Joi.string().required()
+                    })
                 }
             }
         },
         handler: function (request, reply) {
 
             const userId = request.auth.credentials.user._id.toString();
-            const stats = request.payload;
 
-            // Make sure we're in 'initialize' state
-            if (request.payload.status !== 'initialize') {
-                reply(Boom.badRequest('Invalid status, must \'initialize\' on POST'));
+            let stats = request.payload;
+            if ((typeof stats === 'undefined') || (Hoek.deepEqual(stats, {}))) {
+
+                stats = {
+                    figures: {
+                        won: 0,
+                        lost: 0,
+                        abandoned: 0
+                    },
+                    highscores: {
+                        casual: {
+                            score: 0,
+                            timestamp: undefined
+                        },
+                        medium: {
+                            score: 0,
+                            timestamp: undefined
+                        },
+                        hard: {
+                            score: 0,
+                            timestamp: undefined
+                        }
+                    },
+                    flips: {
+                        total: 0,
+                        matched: 0,
+                        wrong: 0
+                    }
+                };
             }
 
             Statistic.create(userId, stats, (err, stat) => {
@@ -130,7 +156,7 @@ internals.applyRoutes = function (server, next) {
 
 
     server.route({
-        method: 'PUT',
+        method: 'PATCH',
         path: '/statistics/my',
         config: {
             auth: {
@@ -139,71 +165,89 @@ internals.applyRoutes = function (server, next) {
             },
             validate: {
                 payload: {
-                    figures: Joi.object().keys({
-                        won: Joi.number().integer(),
-                        lost: Joi.number().integer(),
-                        abandoned: Joi.number().integer()
-                    }),
-                    highscores: Joi.object().keys({
-                        casual: Joi.object().keys({
-                            score: Joi.number().integer(),
-                        }),
-                        medium: Joi.object().keys({
-                            score: Joi.number().integer(),
-                        }),
-                        hard: Joi.object().keys({
-                            score: Joi.number().integer(),
-                        }),
-                    }),
                     flips: Joi.object().keys({
                         total: Joi.number().integer(),
                         matched: Joi.number().integer(),
                         wrong: Joi.number().integer()
                     }),
                     status: Joi.string().required(),
-                    highscore: Joi.boolean().required(),
                     score: Joi.number().integer().required(),
-                    level: Joi.string().required()
+                    time: Joi.number().required(),
+                    level: Joi.string().required(),
+                    seckey: Joi.string().required()
                 }
             },
             ext: {
+                // Use the 'post-handler' to update the Scores collection
                 onPostHandler: {
                     method: function (request, reply) {
 
-                        // On every successful round, update the games collections
-                        if ((request.payload.status === 'won') && (request.auth.isAuthenticated)) {
+                        const seckey = Md5(request.payload.status + request.payload.score + request.payload.level);
 
-                            const document = {
-                                userId: Score.ObjectId(request.auth.credentials.user._id.toString()),
-                                score: request.payload.score,
-                                level: request.payload.level,
-                                timestamp: request.response.source.lastPlayed
-                            }
+                        // Verify the security key is matching
+                        if (request.payload.seckey === seckey) {
 
-                            Score.insertOne(document, (err, stat) => {
+                            // On every successful round, update the games collections
+                            if ((request.payload.status === 'won') && (request.auth.isAuthenticated)) {
 
-                                if (err) {
-                                    console.warn("Could not update the game collection with a new document: " + err);
-                                }
+                                Async.auto({
+                                    account: function (done) {
+        
+                                        const username = request.auth.credentials.user.username !== undefined ? request.auth.credentials.user.username : '';
+            
+                                        Account.findByUsername(username, done);                            
+                                    },
+                                    event: ['account', function (results, done) {
+                                        
+                                        const event = results.account.event !== undefined ? results.account.event : '';
+                            
+                                        Event.findByEvent(event, done);
+                                    }],
+                                    updateScore: ['event', function (results, done) {
 
-                                // Get the socket.io object
-                                const io = request.plugins['hapi-io'].io;
+                                        let document = {
+                                            userId: Score.ObjectId(request.auth.credentials.user._id.toString()),
+                                            score: request.payload.score,
+                                            time: request.payload.time,
+                                            level: request.payload.level,
+                                            timestamp: request.response.source.lastPlayed
+                                        };
 
-                                // Successfully created a new user, increment the user count
-                                io.emit('new_score', {
-                                    _id: stat[0]._id.toString(),
-                                    username: request.auth.credentials.user.username.toString(),
-                                    score: request.payload.score,
-                                    level: request.payload.level,
-                                    timestamp: request.response.source.lastPlayed
+                                        if (results.event !== null) {
+                                            document.event = results.event.name;
+                                        }
+
+                                        Score.insertOne(document, done);
+                                    }]
+                                }, (err, results) => {
+
+                                    if (err) {
+                                        console.warn('Could not update the Score collection with a new document: ' + err);
+                                    }
+
+                                    // Get the socket.io object
+                                    const io = request.plugins['hapi-io'].io;
+
+                                    let document = {
+                                        _id: results.updateScore[0]._id,
+                                        username: request.auth.credentials.user.username,
+                                        score: request.payload.score,
+                                        time: request.payload.time,
+                                        level: request.payload.level,
+                                        timestamp: request.response.source.lastPlayed
+                                    };
+
+                                    if (results.event !== null) {
+                                        document.event = results.event.name;
+                                    }
+
+                                    // Successfully created a new user, increment the user count
+                                    io.emit('new_score', document);
                                 });
-
-                                return reply.continue();
-                            });
-                        } else {
-
-                            return reply.continue();
+                            }
                         }
+
+                        return reply.continue();
                     }
                 }
             }
@@ -213,42 +257,88 @@ internals.applyRoutes = function (server, next) {
             const userId = request.auth.credentials.user._id.toString();
             const filter = { 'userId': userId.toLowerCase() };
             const date = new Date();
+            const seckey = Md5(request.payload.status + request.payload.score + request.payload.level);
 
-            let update = {};
-            if (request.payload.highscore) {
+            //Verify the Security Key is Matching
+            if (request.payload.seckey === seckey) {
 
-                const key = "highscores." + request.payload.level;
+                Statistic.findOne(filter, (err, stat) => {
 
-                update = {
-                    $set: {
-                        figures: request.payload.figures,
-                        [key]: {
-                            score: request.payload.highscores[request.payload.level].score,
+                    if (err) {
+                        return reply(err);
+                    }
+
+                    let update = {};
+
+                    // Now lets update the figures
+                    switch (request.payload.status) {
+                        case 'won':
+                            stat.figures.won++;
+                            break;
+                        case 'abandoned':
+                            stat.figures.abandoned++;
+                            break;
+                        case 'lost':
+                            stat.figures.lost++;
+                            break;
+                        default:
+                            // Do nothing
+                    }
+
+                    // Update the highscore object
+                    let highscore = {};
+                    if (request.payload.score > stat.highscores[request.payload.level].score) {
+
+                        highscore = {
+                            score: request.payload.score,
                             timestamp: date
-                        },
-                        flips: request.payload.flips,
-                        lastPlayed: date
+                        };
                     }
-                };
-            } else {
 
-                update = {
-                    $set: {
-                        figures: request.payload.figures,
-                        flips: request.payload.flips,
-                        lastPlayed: date
+                    // Update the flips
+                    stat.flips.total += request.payload.flips.total;
+                    stat.flips.matched += request.payload.flips.matched;
+                    stat.flips.wrong += request.payload.flips.wrong;
+
+                    const key = 'highscores.' + request.payload.level;
+
+                    if (highscore.score) {
+                        update = {
+                            $set: {
+                                figures: stat.figures,
+                                [key]: {
+                                    score: request.payload.score,
+                                    timestamp: date
+                                },
+                                flips: stat.flips,
+                                lastPlayed: date
+                            }
+                        };
                     }
-                };
+                    else {
+                        update = {
+                            $set: {
+                                figures: stat.figures,
+                                flips: stat.flips,
+                                lastPlayed: date
+                            }
+                        };
+                    }
+
+                    Statistic.findByIdAndUpdate(stat._id, update, (err, data) => {
+
+                        if (err) {
+                            return reply(err);
+                        }
+
+                        reply(data);
+                    });
+                });
             }
+            else {
 
-            Statistic.findOneAndUpdate(filter, update, (err, stat) => {
-
-                if (err) {
-                    return reply(err);
-                }
-
-                reply(stat);
-            });
+                return reply(Boom.forbidden());
+            }
         }
     });
 
@@ -260,10 +350,7 @@ internals.applyRoutes = function (server, next) {
             auth: {
                 strategy: 'session',
                 scope: 'admin'
-            },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root')
-            ]
+            }
         },
         handler: function (request, reply) {
 

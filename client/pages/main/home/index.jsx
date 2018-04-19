@@ -19,13 +19,13 @@ class HomePage extends React.Component {
     render() {
 
         return (
-            <section className="section-home container" onClick={() => (void(0))}>
+            <section className="section-home container" onClick={() => (void (0))}>
                 <Helmet>
-                    <title>pexeso</title>
+                    <title>Pexeso - A memory card game that will test your wits!</title>
                 </Helmet>
                 <div className="home">
                     <div className="logo">
-
+                        <div className="instructions">Hover over the tiles to reveal more information.</div>
                         <div className="card">
                             <div className="flipper">
                                 <div className="f c1">p</div>
@@ -36,7 +36,6 @@ class HomePage extends React.Component {
                                 </div>
                             </div>
                         </div>
-
                         <div className="card twist active">
                             <div className="flipper">
                                 <div className="b f">
@@ -44,7 +43,6 @@ class HomePage extends React.Component {
                                 </div>
                             </div>
                         </div>
-
                         <div className="card">
                             <div className="flipper">
                                 <div className="f c3">x</div>
@@ -55,7 +53,6 @@ class HomePage extends React.Component {
                                 </div>
                             </div>
                         </div>
-
                         <div className="card twist active">
                             <div className="flipper">
                                 <div className="b f">
@@ -63,7 +60,6 @@ class HomePage extends React.Component {
                                 </div>
                             </div>
                         </div>
-
                         <div className="card">
                             <div className="flipper">
                                 <div className="f c5">s</div>
@@ -74,7 +70,6 @@ class HomePage extends React.Component {
                                 </div>
                             </div>
                         </div>
-
                         <div className="card">
                             <div className="flipper">
                                 <div className="f c6">o</div>

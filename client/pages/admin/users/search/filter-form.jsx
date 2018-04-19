@@ -38,7 +38,7 @@ class FilterForm extends React.Component {
                 <div className="col-sm-3">
                     <SelectControl
                         name="role"
-                        label="Can play role"
+                        label="Role"
                         value={this.props.state.role}
                         onChange={this.props.linkSelectState}
                         disabled={this.props.loading}>

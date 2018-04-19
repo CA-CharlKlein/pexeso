@@ -1,0 +1,152 @@
+.cards {
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	background: #fff;
+	color: rgba(255, 255, 255, 1);
+	font: normal 0/0 Arial, Helvetica, sans-serif;
+	margin: 0;
+	overflow: hidden;
+	user-select: none;
+}
+
+/* FRONT SCREEN */
+
+.level {
+	height: 150px;
+	width: 100%;
+    margin: 40px 0 26px;
+    position: relative;
+}
+.level .card {
+	cursor: default;
+	height: 100%;
+	position: relative;
+	width: 33.3%;
+}
+.level .f {
+	font: normal 130px/200px Arial, Helvetica, sans-serif;
+	width: 100%;
+	height: 100%;
+}
+.level .hidden {
+	display: none;
+}
+.level .f .contentbox {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    width: 100%;
+    padding: 5px;
+    text-align: center;
+    line-height: normal;
+    overflow-wrap: break-word;
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 1);
+    font-size: 48px;
+}
+.level .card .f:not(.active):hover {
+	opacity: .8;
+}
+.card .f.active {
+	background: #ffca1c;
+	color: rgba(255, 255, 255, 1);
+}
+.card .f.active .contentbox {
+	-webkit-text-stroke: 1px rgba(255, 255, 255, 1);
+}
+.card .f .contentbox {
+	text-transform: capitalize;
+}
+.card .f.ph {
+	background: none;
+}
+
+/* TABLE */
+.table-results thead tr th.score {
+	width: auto !important;
+	width: 150px;
+	min-width: 150px;
+}
+.leaderboard.page-header {
+    padding-bottom: 9px;
+    margin: 40px 3px 20px 3px;
+	border-bottom: none;
+}
+.leaderboard-table table tr.active-state {
+	font-weight: bold;
+	background: #ffca1c !important;
+	color: white;
+	-moz-transition: 400ms;
+	-ms-transition: 400ms;
+	-o-transition: 400ms;
+	-webkit-transition: 400ms;
+	transition: 400ms;
+}
+
+/* FORMS */
+.row .col-sm-2.right {
+	float: right;
+}
+.leaderboard-form {
+    margin-left: -12px;
+    margin-right: -12px;
+}
+.well {
+	margin-left: 3px;
+	margin-right: 3px;
+}
+.timestamp {
+	width: 20%;
+}
+
+/*Responsive Stuff*/
+@media all and (max-width: 976px) {
+	.level {
+		height: 150px;
+	}
+	.level .f .contentbox {
+		font-size: 32px;
+	}
+	.timestamp {
+		width: 35%;
+	}
+
+}
+@media all and (max-width: 540px) and (min-width: 0px) {
+	.level {
+		height: 150px;
+		margin: 20px 0 26px;
+	}
+	.level .f .contentbox {
+		font-size: 28px;
+	}
+	.level .card {
+		width: 33.3%;
+	}
+	.leaderboard-table {
+		margin: 0px;
+	}
+	.leaderboard-form {
+		margin: 0px;
+	}
+	.row .col-sm-2.right {
+    	float: none;
+	}
+	input[type='text'],
+	input[type='number'],
+	textarea {
+  		font-size: 16px !important;
+	}
+}
+@media all and (max-width: 470px) and (min-width: 0px) {
+	.level {
+		height: 100px;
+		margin: 20px 0 26px;
+	}
+	.level .f .contentbox {
+		font-size: 24px;
+	}
+}

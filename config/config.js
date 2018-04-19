@@ -10,16 +10,20 @@ const criteria = {
     env: process.env.NODE_ENV
 };
 
-
 const config = {
     projectName: 'pexeso',
     port: {
         web: {
             $filter: 'env',
-            test: 9000,
             production: process.env.PORT,
+            test: 9000,
             $default: 8000
         }
+    },
+    ssl: {
+        $filter: 'env',
+        production: process.env.USE_SSL,
+        $default: false
     },
     baseUrl: {
         $filter: 'env',
@@ -47,11 +51,19 @@ const config = {
         },
         autoIndex: true
     },
+    hapiRedis: {
+        url: {
+            $filter: 'env',
+            production: process.env.REDIS_URL,
+            test: 'null',
+            $default: 'redis://localhost:6379'
+        }
+    },
     nodemailer: {
         host: 'smtp.gmail.com',
         port: 465,
         secure: true,
-        auth: { 
+        auth: {
             user: 'ca.pexeso@gmail.com',
             pass: process.env.SMTP_PASSWORD
         }

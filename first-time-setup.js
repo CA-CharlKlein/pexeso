@@ -44,7 +44,9 @@ Async.auto({
         const AuthAttempt = require('./server/models/auth-attempt');
         const Session = require('./server/models/session');
         const User = require('./server/models/user');
-        const Stat = require('./server/models/stat');
+        const Stat = require('./server/models/statistic');
+        const Score = require('./server/models/score');
+        const Events = require('./server/models/event');
 
         Async.auto({
             connect: function (done) {
@@ -61,6 +63,8 @@ Async.auto({
                     Session.deleteMany.bind(Session, {}),
                     User.deleteMany.bind(User, {}),
                     Stat.deleteMany.bind(Stat, {}),
+                    Score.deleteMany.bind(Stat, {}),
+                    Events.deleteMany.bind(Stat, {})
                 ], done);
             }],
             adminGroup: ['clean', function (dbResults, done) {
@@ -107,6 +111,27 @@ Async.auto({
 
                         done(err, docs && docs[0]);
                     });
+                });
+            }],
+            account: ['user', function (dbResults, done) {
+                const document = {
+                    _id: Admin.ObjectId('222222222222222222222222'),
+                    user: {
+                        id: Admin.ObjectId('000000000000000000000000'),
+                        name: 'root'
+                    },
+                    name: {
+                        first: 'Root',
+                        middle: '',
+                        last: 'Admin'
+                    },
+                    event: '',
+                    timeCreated: new Date()
+                };
+
+                Account.insertOne(document, (err, docs) => {
+
+                    done(err, docs && docs[0]);
                 });
             }],
             adminMembership: ['admin', function (dbResults, done) {

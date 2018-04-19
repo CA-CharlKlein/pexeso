@@ -2,7 +2,6 @@
 
 const Constants = require('../constants');
 const ObjectAssign = require('object-assign');
-const ParseValidation = require('../../../../helpers/parse-validation');
 
 const initialState = {
     hydrated: false,
@@ -52,7 +51,7 @@ const reducer = function (state = initialState, action) {
                 hydrated: true,
                 showFetchedFailure: true,
                 statsAvailable: false
-            })
+            });
         }
 
         return ObjectAssign({}, state, {
@@ -80,7 +79,7 @@ const reducer = function (state = initialState, action) {
                 hydrated: true,
                 showFetchedFailure: true,
                 statsAvailable: false
-            })
+            });
         }
 
         return ObjectAssign({}, state, {
@@ -89,7 +88,8 @@ const reducer = function (state = initialState, action) {
             _id: action.response._id,
             figures: action.response.figures,
             highscores: action.response.highscores,
-            flips: action.response.flips
+            flips: action.response.flips,
+            lastPlayed: null
         });
     }
 
@@ -107,7 +107,7 @@ const reducer = function (state = initialState, action) {
                 hydrated: true,
                 showFetchFailure: true,
                 statsAvailable: false
-            })
+            });
         }
 
         return ObjectAssign({}, state, {
@@ -116,7 +116,8 @@ const reducer = function (state = initialState, action) {
             _id: action.response._id,
             figures: action.response.figures,
             highscores: action.response.highscores,
-            flips: action.response.flips
+            flips: action.response.flips,
+            lastPlayed: action.response.lastPlayed
         });
     }
 

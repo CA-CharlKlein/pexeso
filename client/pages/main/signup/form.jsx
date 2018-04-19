@@ -46,6 +46,7 @@ class Form extends React.Component {
         Actions.sendRequest({
             name: this.input.name.value(),
             username: this.input.username.value(),
+            mobile: this.input.mobile.value(),
             password: this.input.password.value(),
             email: this.input.email.value()
         });
@@ -89,6 +90,14 @@ class Form extends React.Component {
                     disabled={this.state.loading}
                 />
                 <TextControl
+                    ref={(c) => (this.input.mobile = c)}
+                    name="mobile"
+                    label="Mobile Number"
+                    placeholder = "e.g. +27 82 123 4567"
+                    hasError={this.state.hasError.mobile}
+                    disabled={this.state.loading}
+                />
+                <TextControl
                     ref={(c) => (this.input.username = c)}
                     name="username"
                     label="Username"
@@ -120,7 +129,6 @@ class Form extends React.Component {
 
         return (
             <section>
-                <h1 className="page-header">Sign up</h1>
                 <form onSubmit={this.handleSubmit.bind(this)}>
                     {alert}
                     {formElements}

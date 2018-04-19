@@ -1,3 +1,4 @@
+/* global window */
 'use strict';
 
 const Actions = require('./actions');
@@ -19,9 +20,11 @@ const propTypes = {
     guess2: PropTypes.number,
     hydrated: PropTypes.bool,
     level: PropTypes.string,
+    timeout: PropTypes.number,
     pairsToMatch: PropTypes.number,
     round: PropTypes.number,
     status: PropTypes.string,
+    timestamp: PropTypes.instanceOf(Date)
 };
 
 
@@ -33,30 +36,31 @@ class Board extends React.Component {
         this.state = {
             active: props.active,
             status: props.status
-        }
+        };
 
     }
 
     componentDidMount() {
 
-        window.addEventListener("beforeunload", (e) => this.handleWindowClose(e));
+        window.addEventListener('beforeunload', (e) => this.handleWindowClose(e));
     }
 
     componentWillReceiveProps(nextProps) {
 
         // This means we've finished the game, so lets update the statistics (hydrate)
-        if (nextProps.status === "won" && !nextProps.hydrated) {
+        if (nextProps.status === 'won' && !nextProps.hydrated) {
 
             // Update the statistics
             Actions.updateStats({
                 status: nextProps.status,
                 level: nextProps.level,
                 flips: nextProps.flips,
-                timestamp: nextProps.timestamp
+                timestamp: nextProps.timestamp,
+                timeout: nextProps.timeout
             });
 
             // We've finished with the game and updated the statistics
-            Actions.changeLogo("nice");
+            Actions.changeLogo('nice');
             Actions.gameStatisticsSaved();
         }
 
@@ -68,18 +72,19 @@ class Board extends React.Component {
 
     onAnimationEnd() {
 
-        const status = "lost";
+        const status = 'lost';
 
         // Update the statistics
         Actions.updateStats({
-            status: status,
+            status,
             level: this.props.level,
             flips: this.props.flips,
-            timestamp: this.props.timestamp
+            timestamp: this.props.timestamp,
+            timeout: this.props.timeout
         });
 
         // We've finished with the game and updated the statistics
-        Actions.changeLogo("fail");
+        Actions.changeLogo('fail');
         Actions.endGameAndUpdateStatus(status);
     }
 
@@ -88,18 +93,19 @@ class Board extends React.Component {
         // If we're still in the game whilst exiting
         if (activeState) {
 
-            const status = "abandoned";
+            const status = 'abandoned';
 
             // Update the statistics
             Actions.updateStats({
-                status: status,
+                status,
                 level: this.props.level,
                 flips: this.props.flips,
-                timestamp: this.props.timestamp
+                timestamp: this.props.timestamp,
+                timeout: this.props.timeout
             });
 
             // We've finished with the game and updated the statistics
-            Actions.changeLogo("stop");
+            Actions.changeLogo('stop');
             Actions.endGameAndUpdateStatus(status);
         }
     }
@@ -113,7 +119,7 @@ class Board extends React.Component {
         }
     }
 
-    handleWindowClose(e) {
+    handleWindowClose() {
 
         this.abandonActiveGame(this.state.active);
     }
@@ -137,9 +143,9 @@ class Board extends React.Component {
                 <Helmet>
                     <title>Play</title>
                 </Helmet>
-                <div className="timer" ref="timer">
+                <div className="timer">
                     <span className="bar-unfill">
-                        <span onAnimationEnd={() => this.onAnimationEnd()} className="bar-fill" style={{animation: '90000ms linear 0s normal none 1 running timer'}}></span>
+                        <span onAnimationEnd={() => this.onAnimationEnd()} className="bar-fill" style={{ animation: this.props.timeout + 's linear 0s normal none 1 running timer' }}></span>
                     </span>
                 </div>
                 <Cards

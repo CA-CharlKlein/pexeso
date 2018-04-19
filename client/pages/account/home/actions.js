@@ -4,21 +4,30 @@ const ApiActions = require('../../../actions/api');
 const Constants = require('./constants');
 const Store = require('./store');
 const CalculateScore = require('../../../helpers/calculate-score');
+const Md5 = require('../../../../node_modules/blueimp-md5/js/md5');
 
 
 class Actions {
     static getStats() {
 
         ApiActions.get(
-            `/api/statistics/my`,
+            '/api/statistics/my',
             undefined,
             Store,
             Constants.GET_STATS,
             Constants.GET_STATS_RESPONSE, (err, response) => {
-                if (err && err.message === "Not Found") {
 
-                    // No document found, let's initialize it
-                    this.createStats();
+                if (err) {
+
+                    if (response.statusCode === 404) {
+
+                        // No document found, let's initialize it first time
+                        this.createStats();
+                    }
+                    else {
+
+                        console.warn(err);
+                    }
                 }
             }
         );
@@ -27,33 +36,12 @@ class Actions {
     static createStats() {
 
         // We need to create this 'empty' object and update the database
-        const data = {
-            figures: {
-                won: 0,
-                lost: 0,
-                abandoned: 0
-            },
-            highscores: {
-                casual: {
-                    score: 0
-                },
-                medium: {
-                    score: 0
-                },
-                hard: {
-                    score: 0
-                }
-            },
-            flips: {
-                total: 0,
-                matched: 0,
-                wrong: 0
-            },
-            status: "initialize",
-        }
+        const data = {};
+
+        console.info('INFO: Creating empty Statistics object in collection.');
 
         ApiActions.post(
-            `/api/statistics/my`,
+            '/api/statistics/my',
             data,
             Store,
             Constants.CREATE_STATS,
@@ -63,106 +51,41 @@ class Actions {
 
     static updateStats(data) {
 
-        // Retrieve the global state
-        const stats = Store.getState().statistics;
-
         // Calculate the score for this game
         let score = 0;
-        if (data.status === "won") {
+        const end = new Date();
+
+        if (data.status === 'won') {
             score = CalculateScore({
                 level: data.level,
                 flips: data.flips,
-                start: data.timestamp
+                start: data.timestamp,
+                end,
+                timeout: data.timeout
             });
         };
 
-        // Calculate highscore
-        let highscore = 0;
-        switch(data.level) {
-            case "casual":
-                highscore = (score > stats.highscores.casual.score) ?
-                    score :
-                    stats.highscores.casual.score;
-                break;
-            case "medium":
-                highscore = (score > stats.highscores.medium.score) ?
-                    score :
-                    stats.highscores.medium.score;
-                break;
-            case "hard":
-                highscore = (score > stats.highscores.hard.score) ?
-                    score :
-                    stats.highscores.hard.score;
-                break;
-            default:
-                // Do nothing
-        };
-
-        // If the two scores are the same, it means we have a new highscore
-        const isHighscore = ((highscore === score) && (highscore > 0)) ?
-            true :
-            false;
+        // Create the client secret key
+        const clientSecKey = Md5('' + data.status + score +  data.level + '');
 
         // Build new statistics object (state)
-        const newStats = {
-            figures: {
-                won: data.status === "won" ?
-                    stats.figures.won + 1 :
-                    stats.figures.won,
-                lost: data.status === "lost" ?
-                    stats.figures.lost + 1 :
-                    stats.figures.lost,
-                abandoned: data.status === "abandoned" ?
-                    stats.figures.abandoned + 1 :
-                    stats.figures.abandoned
-            },
-            highscores: {
-                casual: {
-                    score: data.level === "casual" ?
-                        highscore :
-                        stats.highscores.casual.score
-                    },
-                medium: {
-                    score: data.level === "medium" ?
-                        highscore :
-                        stats.highscores.medium.score
-                    },
-                hard: {
-                    score: data.level === "hard" ?
-                        highscore :
-                        stats.highscores.hard.score
-                    }
-            },
+        const stats = {
             flips: {
-                total: (isNaN(stats.flips.total) ?
-                    0 :
-                    stats.flips.total) + ((isNaN(data.flips.total) ||
-                    (typeof data.flips.total === 'undefined')) ?
-                        0 :
-                        data.flips.total),
-                matched: (isNaN(stats.flips.matched) ?
-                    0 :
-                    stats.flips.matched) + ((isNaN(data.flips.matched) ||
-                    (typeof data.flips.matched === 'undefined')) ?
-                        0 :
-                        data.flips.matched),
-                wrong: (isNaN(stats.flips.wrong) ?
-                    0 :
-                    stats.flips.wrong) + ((isNaN(data.flips.wrong) ||
-                    (typeof data.flips.wrong === 'undefined')) ?
-                        0 :
-                        data.flips.wrong)
+                total: typeof data.flips.total === 'undefined' ? 0 : data.flips.total,
+                matched: typeof data.flips.matched === 'undefined' ? 0 : data.flips.matched,
+                wrong: typeof data.flips.wrong === 'undefined' ? 0 : data.flips.wrong
             },
             status: data.status,
-            highscore: isHighscore,
-            score: score,
-            level: data.level
+            score,
+            time: (end - data.timestamp) / 1000,
+            level: data.level,
+            seckey : clientSecKey
         };
 
         // Update the database
-        ApiActions.put(
+        ApiActions.patch(
             '/api/statistics/my',
-            newStats,
+            stats,
             Store,
             Constants.SAVE_STATS,
             Constants.SAVE_STATS_RESPONSE

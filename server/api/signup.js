@@ -4,7 +4,7 @@ const Async = require('async');
 const Boom = require('boom');
 const Config = require('../../config/config');
 const Joi = require('joi');
-const hexGen = require('../helpers/hex-generator');
+const HexGen = require('../helpers/hex-generator');
 
 const internals = {};
 
@@ -12,8 +12,9 @@ const internals = {};
 internals.applyRoutes = function (server, next) {
 
     const Account = server.plugins['hapi-mongo-models'].Account;
-    const Session = server.plugins['hapi-mongo-models'].Session;
     const User = server.plugins['hapi-mongo-models'].User;
+    const Statistic = server.plugins['hapi-mongo-models'].Statistic;
+    const Event = server.plugins['hapi-mongo-models'].Event;
 
 
     server.route({
@@ -33,6 +34,7 @@ internals.applyRoutes = function (server, next) {
                 payload: {
                     name: Joi.string().required(),
                     email: Joi.string().email().lowercase().required(),
+                    mobile: Joi.string().regex(/((?:\+27|27)|0)[\s-]?(\d{2})[\s-]?(\d{3})[\s-]?(\d{4})[\s]*$/gm).required(),
                     username: Joi.string().token().lowercase().required(),
                     password: Joi.string().required()
                 }
@@ -82,7 +84,7 @@ internals.applyRoutes = function (server, next) {
             }]
         },
         handler: function (request, reply) {
-            
+
             const mailer = request.server.plugins.mailer;
 
             Async.auto({
@@ -100,14 +102,48 @@ internals.applyRoutes = function (server, next) {
 
                     Account.create(name, done);
                 }],
+                cookieEvent: ['account', function (results, done) {
+
+                    let event = '';
+                    if (request.state['sid-pexeso'] && request.state['sid-pexeso'].event) {
+                        event = request.state['sid-pexeso'].event;
+                    }
+                    if (event != '') {
+                        Event.findByEvent(event, done);
+                    } else {
+                        done();
+                    }
+                }],
+                updateAccount: ['cookieEvent', function (results, done) {
+
+                    if (request.state['sid-pexeso'] && request.state['sid-pexeso'].event) {
+                        // First see if the latest event is 'active'
+                        if ((results.cookieEvent) && (results.cookieEvent.isActive === true)) {
+
+                            const id = results.account._id;
+                            const update = {
+                                $set: {
+                                    event: results.cookieEvent.name
+                                }
+                            };
+
+                            Account.findByIdAndUpdate(id, update, done);
+                        }
+                    } else {
+                        done();
+                    }
+                }],
                 linkUser: ['account', function (results, done) {
 
                     const id = results.account._id.toString();
+                    const mobilenum = request.payload.mobile;
+
                     const update = {
                         $set: {
                             user: {
                                 id: results.user._id.toString(),
-                                name: results.user.username
+                                name: results.user.username,
+                                mobile: mobilenum
                             }
                         }
                     };
@@ -130,9 +166,44 @@ internals.applyRoutes = function (server, next) {
 
                     User.findByIdAndUpdate(id, update, done);
                 }],
+                statistics: ['account', function (results, done) {
+
+                    const userId = results.user._id.toString();
+
+                    // Empty stats object
+                    const stats = {
+                        figures: {
+                            won: 0,
+                            lost: 0,
+                            abandoned: 0
+                        },
+                        highscores: {
+                            casual: {
+                                score: 0,
+                                timestamp: undefined
+                            },
+                            medium: {
+                                score: 0,
+                                timestamp: undefined
+                            },
+                            hard: {
+                                score: 0,
+                                timestamp: undefined
+                            }
+                        },
+                        flips: {
+                            total: 0,
+                            matched: 0,
+                            wrong: 0
+                        }
+                    };
+
+                    Statistic.create(userId, stats, done);
+                }],
                 generateVerificationCode: ['account', function (results, done) {
+
                     const id = results.user._id.toString();
-                    const verificationToken = hexGen(24).toLowerCase();
+                    const verificationToken = HexGen(24).toLowerCase();
 
                     const update = {
                         $set: {
@@ -147,8 +218,8 @@ internals.applyRoutes = function (server, next) {
                     request.payload.verificationToken = verificationToken;
                 }],
                 welcome: ['linkUser', 'linkAccount', 'generateVerificationCode', function (results, done) {
-                    
-                    request.payload.publicURL = Config.get('/baseUrl') + "/verify";
+
+                    request.payload.publicURL = Config.get('/baseUrl') + '/verify';
 
                     const emailOptions = {
                         subject: 'Your ' + Config.get('/projectName') + ' account',
@@ -168,11 +239,6 @@ internals.applyRoutes = function (server, next) {
 
                     done();
                 }]
-                /*,
-                session: ['linkUser', 'linkAccount', 'generateVerificationCode', function (results, done) {
-
-                    Session.create(results.user._id.toString(), done);
-                }] */
             }, (err, results) => {
 
                 if (err) {
@@ -180,31 +246,16 @@ internals.applyRoutes = function (server, next) {
                 }
 
                 const user = results.linkAccount;
-                /*const credentials = user.username + ':' + results.session.key;
-                const authHeader = 'Basic ' + new Buffer(credentials).toString('base64');*/
+
                 const result = {
                     user: {
                         _id: user._id,
                         username: user.username,
                         email: user.email,
                         roles: user.roles
-                    },
+                    }
                 };
 
-                // Get the socket.io object
-                const io = request.plugins['hapi-io'].io;
-
-                // Successfully created a new user, increment the user count
-                io.emit('new_user', {
-                    count: 1
-                });
-
-                // Session also created, let's increment that too
-                //io.emit('logged_in', {
-                //    count: 1
-                //});
-
-                //request.cookieAuth.set(result);
                 reply(result);
             });
         }

@@ -2,6 +2,7 @@
 
 const Actions = require('./actions');
 const DeleteForm = require('../../../../../client/pages/admin/components/delete-form.jsx');
+const VerifyForm = require('../../../../../client/pages/admin/components/verify-form.jsx');
 const DetailsForm = require('./details-form.jsx');
 const PasswordForm = require('./password-form.jsx');
 const PropTypes = require('prop-types');
@@ -9,6 +10,9 @@ const React = require('react');
 const ReactRouter = require('react-router-dom');
 const RolesForm = require('./roles-form.jsx');
 const Store = require('./store');
+const ReactHelmet = require('react-helmet');
+
+const Helmet = ReactHelmet.Helmet;
 
 
 const Link = ReactRouter.Link;
@@ -73,6 +77,9 @@ class DetailsPage extends React.Component {
 
         return (
             <section className="container">
+                <Helmet>
+                    <title>Admin - User Details</title>
+                </Helmet>
                 <h1 className="page-header">
                     <Link to="/admin/users">Users</Link> / {username}
                 </h1>
@@ -81,6 +88,10 @@ class DetailsPage extends React.Component {
                         <DetailsForm {...this.state.details} />
                         <RolesForm {...this.state.details.roles} />
                         <PasswordForm {...this.state.password} />
+                        <VerifyForm
+                            {...this.state.verify}
+                            action={Actions.verify.bind(Actions, id, this.props.history)}
+                        />
                         <DeleteForm
                             {...this.state.delete}
                             action={Actions.delete.bind(Actions, id, this.props.history)}

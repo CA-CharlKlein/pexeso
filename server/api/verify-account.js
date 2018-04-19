@@ -1,8 +1,6 @@
 'use strict';
 
-const Config = require('../../config/config');
 const Joi = require('joi');
-const Async = require('async');
 const Boom = require('boom');
 
 const internals = {};
@@ -11,9 +9,9 @@ const internals = {};
 internals.applyRoutes = function (server, next) {
 
     const User = server.plugins['hapi-mongo-models'].User;
-    const Account = server.plugins['hapi-mongo-models'].Account;
-    
+
     server.route({
+
         method: 'POST',
         path: '/verify',
         config: {
@@ -26,14 +24,25 @@ internals.applyRoutes = function (server, next) {
         handler: function (request, reply) {
 
             User.verifyUser(request.payload.token, (err, result) => {
+
                 if (err){
-                    reply(Boom.notFound(err)); 
+                    reply(Boom.notFound(err));
                 }
 
                 if (result) {
+
+                    // Get the socket.io object
+                    const io = request.plugins['hapi-io'].io;
+
+                    // Successfully created a new user, increment the user count
+                    io.emit('new_user', {
+                        count: 1
+                    });
+
                     reply({ success: true });
-                } else {
-                    reply(Boom.notFound("User Not Found, Please Contact and Administrator.")); 
+                }
+                else {
+                    reply(Boom.notFound('User not found, please contact your administrator.'));
                 }
             });
         }
@@ -46,7 +55,7 @@ internals.applyRoutes = function (server, next) {
 exports.register = function (server, options, next) {
 
     server.dependency('mailer', internals.applyRoutes);
-    
+
     next();
 };
 

@@ -14,6 +14,13 @@ const manifest = {
         debug: {
             request: ['error']
         },
+        cache: {
+            name: 'redisCache',
+            engine: require('catbox-redis'),
+            shared: true,
+            partition: 'cache',
+            url: Config.get('/hapiRedis/url')
+        },
         connections: {
             routes: {
                 security: true
@@ -82,7 +89,8 @@ const manifest = {
                         Session: './server/models/session',
                         User: './server/models/user',
                         Statistic: './server/models/statistic',
-                        Score: './server/models/score'
+                        Score: './server/models/score',
+                        Event: './server/models/event'
                     },
                     autoIndex: Config.get('/hapiMongoModels/autoIndex')
                 }
@@ -115,6 +123,16 @@ const manifest = {
             plugin: 'hapi-io'
         },
         {
+            plugin: {
+                register: './server/hapi-io-redis',
+                options: {
+                    connection: {
+                        url: Config.get('/hapiRedis/url')
+                    }
+                }
+            }
+        },
+        {
             plugin: './server/telemetry'
         },
         {
@@ -123,6 +141,14 @@ const manifest = {
         {
             plugin: './server/mailer'
         },
+        /*{
+            plugin: {
+                register: './server/https-redirect',
+                options: {
+                    redirect: Config.get('/ssl')
+                }
+            }
+        },*/
         {
             plugin: './server/api/accounts',
             options: {
@@ -208,6 +234,12 @@ const manifest = {
             }
         },
         {
+            plugin: './server/api/events',
+            options: {
+                routes: { prefix: '/api' }
+            }
+        },
+        {
             plugin: './server/api/monitor',
             options: {
                 routes: { prefix: '/api' }
@@ -224,6 +256,9 @@ const manifest = {
         },
         {
             plugin: './server/web/public'
+        },
+        {
+            plugin: './server/web/status'
         }
     ]
 };

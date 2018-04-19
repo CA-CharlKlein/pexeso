@@ -9,7 +9,6 @@ const ReactHelmet = require('react-helmet');
 const ReactRouter = require('react-router-dom');
 const Spinner = require('../../../components/form/spinner.jsx');
 const Store = require('./store');
-const TextControl = require('../../../components/form/text-control.jsx');
 
 
 const Helmet = ReactHelmet.Helmet;
@@ -19,7 +18,7 @@ const propTypes = {
 };
 
 
-class ResetPage extends React.Component {
+class VerifyAccount extends React.Component {
     constructor(props) {
 
         super(props);
@@ -50,7 +49,7 @@ class ResetPage extends React.Component {
         event.stopPropagation();
 
         Actions.verifyAccount({
-            token: this.props.match.params.token            
+            token: this.props.match.params.token
         });
     }
 
@@ -61,7 +60,7 @@ class ResetPage extends React.Component {
         if (this.state.success) {
             alerts.push(<div key="success">
                 <div className="alert alert-success">
-                    Your account has been verified, Please Login
+                    Your account has been verified. Please login.
                 </div>
                 <Link to="/login" className="btn btn-link">Back to login</Link>
             </div>);
@@ -96,26 +95,17 @@ class ResetPage extends React.Component {
                 <Helmet>
                     <title>Verify Account</title>
                 </Helmet>
-                <div className="container">
-                    <h1 className="page-header">Verify your Account</h1>
-                    <div className="row">
-                        <div className="col-sm-6">
-                            <p>
-                                Please Click the Buttom Below to Verify you Account
-                            </p>
-                            <p>
-                                You Will be redirected the the Login Page After the Verification.
-                            </p>
-                        </div>
-                        <hr />
-                    </div>
-                    <div className="row">
-                        <div className="col-sm-6">
-                            <form onSubmit={this.handleSubmit.bind(this)}>
-                                {formElements}
-                                {alerts}
-                            </form>
-                        </div>
+                <div className="row">
+                    <h1 className="page-header" style={{marginLeft: '15px', marginRight: '15px'}}>Verify your account</h1>
+                    <div className="col-sm-6">
+                        <h4 className="media-heading">
+                            You will be redirected to the login page after the verification step.
+                        </h4>
+                        <br/>
+                        <form onSubmit={this.handleSubmit.bind(this)}>
+                            {formElements}
+                            {alerts}
+                        </form>
                     </div>
                 </div>
             </section>
@@ -123,7 +113,7 @@ class ResetPage extends React.Component {
     }
 }
 
-ResetPage.propTypes = propTypes;
+VerifyAccount.propTypes = propTypes;
 
 
-module.exports = ResetPage;
+module.exports = VerifyAccount;

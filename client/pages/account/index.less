@@ -1,5 +1,6 @@
 @import "../../../node_modules/bootstrap/less/variables.less";
 @import "./home/index.less";
+@import "./leaderboard/index.less";
 
 body {
     font-family: Arial, Helvetica, sans-serif;
@@ -255,6 +256,12 @@ a:hover, a:focus {
     outline-offset: -2px;
     outline: 0;
 }
+.navbar-nav .hide a {
+    display: none;
+}
+
+
+/*Responsive Stuff*/
 @media all and (max-width: 768px) and (min-width: 0px) {
     .ico-logo:before {
         display: none;
@@ -269,6 +276,15 @@ a:hover, a:focus {
 }
 @media all and (min-width: 768px) {
     .navbar-nav .nav-list-icon span {
+        display: none;
+    }
+}
+@media all and (max-width: 540px) and (min-width: 0px) {
+    .well {
+		margin: 0px;
+		padding: 8px;
+    }
+    .small-devices {
         display: none;
     }
 }

@@ -13,7 +13,9 @@ class Account extends MongoModels {
         const document = {
             name: {
                 first: nameParts.shift(),
-                middle: nameParts.length > 1 ? nameParts.shift() : '',
+                middle: nameParts.length > 1 ?
+                    nameParts.shift() :
+                    '',
                 last: nameParts.join(' ')
             },
             timeCreated: new Date()
@@ -52,11 +54,8 @@ Account.schema = Joi.object().keys({
         middle: Joi.string().allow(''),
         last: Joi.string().required()
     }),
+    event: Joi.string(),
     notes: Joi.array().items(NoteEntry.schema),
-    verification: Joi.object().keys({
-        complete: Joi.boolean(),
-        token: Joi.string()
-    }),
     timeCreated: Joi.date()
 });
 

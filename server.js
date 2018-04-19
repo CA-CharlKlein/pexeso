@@ -1,6 +1,10 @@
 'use strict';
 
+// CA APM Monitoring
+const probe = require('ca-apm-probe').start('localhost', 5005, 'pexeso');
+
 const Glue = require('glue');
+const Hoek = require('hoek');
 const BabelRegister = require('babel-core/register');
 const Manifest = require('./config/manifest');
 
@@ -15,15 +19,18 @@ const composeOptions = {
     }
 };
 
+console.log('Starting HTTP Node server...');
+console.log('NODE_ENV is ' + `"${process.env.NODE_ENV}"`);
 Glue.compose(Manifest.get('/'), composeOptions, (err, server) => {
 
     if (err) {
-        console.log('server.register err:', err);
+        console.log('Server registration error: ', err);
     }
 
-    server.start(() => {
+    server.start((err) => {
+
+        Hoek.assert(!err, err);
 
         console.log('Server is listening on ' + server.info.uri.toLowerCase());
-        console.log('NODE_ENV is  ' + `"${process.env.NODE_ENV}"`);
     });
 });

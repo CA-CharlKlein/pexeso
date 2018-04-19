@@ -44,6 +44,9 @@ select, textarea, input, .form-control {
         }
     }
 }
+.navbar-nav .hide a {
+    display: none;
+}
 
 .table-results {
     thead tr th {
@@ -100,5 +103,20 @@ select, textarea, input, .form-control {
             margin-right: 0;
             border: none;
         }
+    }
+}
+
+@media all and (max-width: 540px) and (min-width: 0px) {
+    .well {
+		margin: 0px;
+		padding: 8px;
+    }
+    .small-devices {
+        display: none;
+    }
+}
+@media all and (max-width: 992px) and (min-width: 768px) {
+    .container {
+        width: 778px;
     }
 }

@@ -5,6 +5,8 @@ const AccountSearch = require('./accounts/search/index.jsx');
 const AdminDetails = require('./admins/details/index.jsx');
 const AdminGroupDetails = require('./admin-groups/details/index.jsx');
 const AdminGroupSearch = require('./admin-groups/search/index.jsx');
+const EventDetails = require('./events/details/index.jsx');
+const EventSearch = require('./events/search/index.jsx');
 const AdminSearch = require('./admins/search/index.jsx');
 const Footer = require('./footer.jsx');
 const Home = require('./home/index.jsx');
@@ -15,7 +17,6 @@ const ReactRouter = require('react-router-dom');
 const UserDetails = require('./users/details/index.jsx');
 const UserSearch = require('./users/search/index.jsx');
 const Leaderboard = require('./leaderboard/index.jsx');
-// TODO: Add leaderboard search
 
 const Router = ReactRouter.BrowserRouter;
 const Route = ReactRouter.Route;
@@ -34,9 +35,11 @@ const App = (
                 <Route path="/admin/admins/:id" component={AdminDetails} />
                 <Route path="/admin/admin-groups" exact component={AdminGroupSearch} />
                 <Route path="/admin/admin-groups/:id" component={AdminGroupDetails} />
+                <Route path="/admin/events" exact component={EventSearch} />
+                <Route path="/admin/events/:id" component={EventDetails} />
                 <Route path="/admin/users" exact component={UserSearch} />
                 <Route path="/admin/users/:id" component={UserDetails} />
-                <Route path="/admin/leaderboard" component={Leaderboard} />
+                <Route path="/admin/leaderboard" exact component={Leaderboard} />
 
                 <Route component={NotFound} />
             </Switch>

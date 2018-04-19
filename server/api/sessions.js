@@ -1,6 +1,5 @@
 'use strict';
 
-const AuthPlugin = require('../auth');
 const Boom = require('boom');
 const Joi = require('joi');
 
@@ -28,10 +27,7 @@ internals.applyRoutes = function (server, next) {
                     limit: Joi.number().default(20),
                     page: Joi.number().default(1)
                 }
-            },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root')
-            ]
+            }
         },
         handler: function (request, reply) {
 
@@ -59,10 +55,7 @@ internals.applyRoutes = function (server, next) {
             auth: {
                 strategy: 'session',
                 scope: 'admin'
-            },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root')
-            ]
+            }
         },
         handler: function (request, reply) {
 
@@ -86,10 +79,7 @@ internals.applyRoutes = function (server, next) {
             auth: {
                 strategy: 'session',
                 scope: 'admin'
-            },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root')
-            ]
+            }
         },
         handler: function (request, reply) {
 
@@ -116,10 +106,7 @@ internals.applyRoutes = function (server, next) {
             auth: {
                 strategy: 'session',
                 scope: 'admin'
-            },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root')
-            ]
+            }
         },
         handler: function (request, reply) {
 

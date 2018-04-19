@@ -11,7 +11,7 @@
 	overflow: hidden;
 	user-select: none;
 }
-[data-reactroot], .game, .flipper, .f, .b, #g {
+.app, .game, .flipper, .f, .b, #g {
 	height: 100%;
 	width: 100%;
 }
@@ -20,7 +20,7 @@
 }
 
 
- /* Do this so that the tiles will fit inside the browser window */
+ /* Do this so that the game tiles will fit inside the browser window */
 html, body, #app-mount {
 	height: 100%;
 }
@@ -31,11 +31,11 @@ html, body, #app-mount {
 	font-family: "GeneralFoundicons";
 	font-style: normal;
 	font-weight: normal;
-	src: url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/60583/general_foundicons.eot");
-	src: url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/60583/general_foundicons.eot?#iefix") format("embedded-opentype"),
-	     url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/60583/general_foundicons.woff") format("woff"),
-	     url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/60583/general_foundicons.ttf") format("truetype"),
-	     url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/60583/general_foundicons.svg#GeneralFoundicons") format("svg");
+	src: url("/public/media/fonts/general_foundicons.eot");
+	src: url("/public/media/fonts/general_foundicons.eot?#iefix") format("embedded-opentype"),
+	     url("/public/media/fonts/general_foundicons.woff") format("woff"),
+	     url("/public/media/fonts/general_foundicons.ttf") format("truetype"),
+	     url("/public/media/fonts/general_foundicons.svg#GeneralFoundicons") format("svg");
 }
 .flipper a {
 	color: #fff;
@@ -115,6 +115,12 @@ html, body, #app-mount {
 	line-height: 14px;
 	margin: 14px 0;
 }
+.logo .contentbox .played {
+	padding: 16px 0;
+	display: inline-block;
+	font-size: 16px;
+	font-weight: normal;
+}
 #stats h2 i {
 	color: rgba(255,255,255, .4);
 	font: italic normal 9px/8px Arial, Helvetica, sans-serif;
@@ -138,7 +144,6 @@ html, body, #app-mount {
 #stats li b {
 	display: inline-block;
 	font-size: 16px;
-	font-weight: normal;
 	width: auto;
 }
 #stats li span {
@@ -379,7 +384,7 @@ html, body, #app-mount {
 	}
 	.logo .contentbox h2 {
 		font-size: 16px;
-		margin: 22px 0;
+		margin: 16px 0;
 	}
 	.logo .instructions h2 {
 		display: none;
@@ -393,5 +398,11 @@ html, body, #app-mount {
 	}
 	#stats li span {
     	font-size: 12px;
+	}
+	.logo .contentbox .played {
+		font-size: 12px;
+	}
+	#stats ul {
+		line-height: 16px;
 	}
 }

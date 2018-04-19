@@ -16,7 +16,8 @@ const initialState = {
         first: '',
         middle: '',
         last: ''
-    }
+    },
+    event: undefined
 };
 const reducer = function (state = initialState, action) {
 

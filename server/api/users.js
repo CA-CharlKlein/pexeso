@@ -1,5 +1,6 @@
 'use strict';
 
+const Async = require('async');
 const AuthPlugin = require('../auth');
 const Boom = require('boom');
 const EscapeRegExp = require('escape-string-regexp');
@@ -12,7 +13,10 @@ const internals = {};
 internals.applyRoutes = function (server, next) {
 
     const User = server.plugins['hapi-mongo-models'].User;
-    const Stat = server.plugins['hapi-mongo-models'].Stat;
+    const Statistic = server.plugins['hapi-mongo-models'].Statistic;
+    const Account = server.plugins['hapi-mongo-models'].Account;
+    const Event = server.plugins['hapi-mongo-models'].Event;
+
 
     server.route({
         method: 'GET',
@@ -32,10 +36,7 @@ internals.applyRoutes = function (server, next) {
                     limit: Joi.number().default(20),
                     page: Joi.number().default(1)
                 }
-            },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root')
-            ]
+            }
         },
         handler: function (request, reply) {
 
@@ -47,7 +48,9 @@ internals.applyRoutes = function (server, next) {
                 query.isActive = request.query.isActive === 'true';
             }
             if (request.query.role) {
-                query['roles.' + request.query.role] = { $exists: true };
+                query['roles.' + request.query.role] = {
+                    $exists: true
+                };
             }
             const fields = request.query.fields;
             const sort = request.query.sort;
@@ -72,10 +75,7 @@ internals.applyRoutes = function (server, next) {
             auth: {
                 strategy: 'session',
                 scope: 'admin'
-            },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root')
-            ]
+            }
         },
         handler: function (request, reply) {
 
@@ -102,10 +102,7 @@ internals.applyRoutes = function (server, next) {
             auth: {
                 strategy: 'session',
                 scope: 'admin'
-            },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root')
-            ]
+            }
         },
         handler: function (request, reply) {
 
@@ -137,19 +134,83 @@ internals.applyRoutes = function (server, next) {
         handler: function (request, reply) {
 
             const id = request.auth.credentials.user._id.toString();
-            const fields = User.fieldsAdapter('username email roles');
 
-            User.findById(id, fields, (err, user) => {
+            Async.auto({
+                user: function (done) {
+
+                    const fields = User.fieldsAdapter('username email roles');
+
+                    User.findById(id, fields, done);
+                },
+                account: ['user', function (results, done) {
+
+                    if (!results.user) {
+                        return reply(Boom.badRequest('Document not found. That is strange.'));
+                    }
+
+                    const username = results.user.username !== undefined ? results.user.username : '';
+
+                    Account.findByUsername(username, done);
+                }],
+                accountEvent: ['account', function (results, done) {
+
+                    if (results.account === null) {
+                        return reply();
+                    }
+
+                    const event = results.account.event !== undefined ? results.account.event : '';
+
+                    Event.findByEvent(event, done);
+                }],
+                cookieEvent: ['accountEvent', function (results, done) {
+
+                    let event = '';
+                    if (request.state['sid-pexeso'] && request.state['sid-pexeso'].event) {
+                        event = request.state['sid-pexeso'].event;
+                    }
+
+                    Event.findByEvent(event, done);
+                }],
+                updateAccount: ['cookieEvent', function (results, done) {
+
+                    // First see if we have a *new* event in our cookie
+                    if ((results.cookieEvent) && (results.cookieEvent.isActive === true)) {
+
+                        const id = results.account._id;
+                        const update = {
+                            $set: {
+                                event: results.cookieEvent.name
+                            }
+                        };
+
+                        Account.findByIdAndUpdate(id, update, done);
+                    }
+                    // Else check to see if the account holds an event
+                    else {
+
+                        // Delete any inactive events from the account
+                        if ((results.accountEvent) && (results.accountEvent.isActive === false)) {
+
+                            const id = results.account._id;
+                            const rem = {
+                                $unset: {
+                                    event: ''
+                                }
+                            };
+
+                            Account.findByIdAndUpdate(id, rem, done);
+                        } else {
+                            done(); // Do nothing
+                        }
+                    }
+                }]
+            }, (err, results) => {
 
                 if (err) {
                     return reply(err);
                 }
 
-                if (!user) {
-                    return reply(Boom.notFound('Document not found. That is strange.'));
-                }
-
-                reply(user);
+                return reply(results.user);
             });
         }
     });
@@ -170,52 +231,49 @@ internals.applyRoutes = function (server, next) {
                     password: Joi.string().required()
                 }
             },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root'),
-                {
-                    assign: 'usernameCheck',
-                    method: function (request, reply) {
+            pre: [{
+                assign: 'usernameCheck',
+                method: function (request, reply) {
 
-                        const conditions = {
-                            username: request.payload.username
-                        };
+                    const conditions = {
+                        username: request.payload.username
+                    };
 
-                        User.findOne(conditions, (err, user) => {
+                    User.findOne(conditions, (err, user) => {
 
-                            if (err) {
-                                return reply(err);
-                            }
+                        if (err) {
+                            return reply(err);
+                        }
 
-                            if (user) {
-                                return reply(Boom.conflict('Username already in use.'));
-                            }
+                        if (user) {
+                            return reply(Boom.conflict('Username already in use.'));
+                        }
 
-                            reply(true);
-                        });
-                    }
-                }, {
-                    assign: 'emailCheck',
-                    method: function (request, reply) {
-
-                        const conditions = {
-                            email: request.payload.email
-                        };
-
-                        User.findOne(conditions, (err, user) => {
-
-                            if (err) {
-                                return reply(err);
-                            }
-
-                            if (user) {
-                                return reply(Boom.conflict('Email already in use.'));
-                            }
-
-                            reply(true);
-                        });
-                    }
+                        reply(true);
+                    });
                 }
-            ]
+            }, {
+                assign: 'emailCheck',
+                method: function (request, reply) {
+
+                    const conditions = {
+                        email: request.payload.email
+                    };
+
+                    User.findOne(conditions, (err, user) => {
+
+                        if (err) {
+                            return reply(err);
+                        }
+
+                        if (user) {
+                            return reply(Boom.conflict('Email already in use.'));
+                        }
+
+                        reply(true);
+                    });
+                }
+            }]
         },
         handler: function (request, reply) {
 
@@ -229,7 +287,45 @@ internals.applyRoutes = function (server, next) {
                     return reply(err);
                 }
 
-                reply(user);
+                // Add empty statistics document
+                const userId = user._id.toString();
+
+                // Empty stats object
+                const stats = {
+                    figures: {
+                        won: 0,
+                        lost: 0,
+                        abandoned: 0
+                    },
+                    highscores: {
+                        casual: {
+                            score: 0,
+                            timestamp: undefined
+                        },
+                        medium: {
+                            score: 0,
+                            timestamp: undefined
+                        },
+                        hard: {
+                            score: 0,
+                            timestamp: undefined
+                        }
+                    },
+                    flips: {
+                        total: 0,
+                        matched: 0,
+                        wrong: 0
+                    }
+                };
+
+                Statistic.create(userId, stats, (err, stat) => {
+
+                    if (err) {
+                        console.error(err);
+                    }
+
+                    reply(user);
+                });
             });
         }
     });
@@ -253,54 +349,55 @@ internals.applyRoutes = function (server, next) {
                     email: Joi.string().email().lowercase().required()
                 }
             },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root'),
-                {
-                    assign: 'usernameCheck',
-                    method: function (request, reply) {
+            pre: [{
+                assign: 'usernameCheck',
+                method: function (request, reply) {
 
-                        const conditions = {
-                            username: request.payload.username,
-                            _id: { $ne: User._idClass(request.params.id) }
-                        };
+                    const conditions = {
+                        username: request.payload.username,
+                        _id: {
+                            $ne: User._idClass(request.params.id)
+                        }
+                    };
 
-                        User.findOne(conditions, (err, user) => {
+                    User.findOne(conditions, (err, user) => {
 
-                            if (err) {
-                                return reply(err);
-                            }
+                        if (err) {
+                            return reply(err);
+                        }
 
-                            if (user) {
-                                return reply(Boom.conflict('Username already in use.'));
-                            }
+                        if (user) {
+                            return reply(Boom.conflict('Username already in use.'));
+                        }
 
-                            reply(true);
-                        });
-                    }
-                }, {
-                    assign: 'emailCheck',
-                    method: function (request, reply) {
-
-                        const conditions = {
-                            email: request.payload.email,
-                            _id: { $ne: User._idClass(request.params.id) }
-                        };
-
-                        User.findOne(conditions, (err, user) => {
-
-                            if (err) {
-                                return reply(err);
-                            }
-
-                            if (user) {
-                                return reply(Boom.conflict('Email already in use.'));
-                            }
-
-                            reply(true);
-                        });
-                    }
+                        reply(true);
+                    });
                 }
-            ]
+            }, {
+                assign: 'emailCheck',
+                method: function (request, reply) {
+
+                    const conditions = {
+                        email: request.payload.email,
+                        _id: {
+                            $ne: User._idClass(request.params.id)
+                        }
+                    };
+
+                    User.findOne(conditions, (err, user) => {
+
+                        if (err) {
+                            return reply(err);
+                        }
+
+                        if (user) {
+                            return reply(Boom.conflict('Email already in use.'));
+                        }
+
+                        reply(true);
+                    });
+                }
+            }]
         },
         handler: function (request, reply) {
 
@@ -351,7 +448,9 @@ internals.applyRoutes = function (server, next) {
 
                         const conditions = {
                             username: request.payload.username,
-                            _id: { $ne: request.auth.credentials.user._id }
+                            _id: {
+                                $ne: request.auth.credentials.user._id
+                            }
                         };
 
                         User.findOne(conditions, (err, user) => {
@@ -373,7 +472,9 @@ internals.applyRoutes = function (server, next) {
 
                         const conditions = {
                             email: request.payload.email,
-                            _id: { $ne: request.auth.credentials.user._id }
+                            _id: {
+                                $ne: request.auth.credentials.user._id
+                            }
                         };
 
                         User.findOne(conditions, (err, user) => {
@@ -433,23 +534,20 @@ internals.applyRoutes = function (server, next) {
                     password: Joi.string().required()
                 }
             },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root'),
-                {
-                    assign: 'password',
-                    method: function (request, reply) {
+            pre: [{
+                assign: 'password',
+                method: function (request, reply) {
 
-                        User.generatePasswordHash(request.payload.password, (err, hash) => {
+                    User.generatePasswordHash(request.payload.password, (err, hash) => {
 
-                            if (err) {
-                                return reply(err);
-                            }
+                        if (err) {
+                            return reply(err);
+                        }
 
-                            reply(hash);
-                        });
-                    }
+                        reply(hash);
+                    });
                 }
-            ]
+            }]
         },
         handler: function (request, reply) {
 
@@ -539,10 +637,7 @@ internals.applyRoutes = function (server, next) {
                 params: {
                     id: Joi.string().invalid('000000000000000000000000')
                 }
-            },
-            pre: [
-                AuthPlugin.preware.ensureAdminGroup('root')
-            ]
+            }
         },
         handler: function (request, reply) {
 
@@ -557,8 +652,10 @@ internals.applyRoutes = function (server, next) {
                 }
 
                 // Let's delete the game statistics as well
-                const filter = { 'userId': request.params.id.toLowerCase() };
-                Stat.findOneAndDelete(filter, (err, stat) => {
+                const filter = {
+                    'userId': request.params.id.toLowerCase()
+                };
+                Statistic.findOneAndDelete(filter, (err, stat) => {
 
                     if (err) {
                         // Don't through it back to the UI, log to output
@@ -574,11 +671,59 @@ internals.applyRoutes = function (server, next) {
                     count: -1
                 });
 
-                reply({ success: true });
+                reply({
+                    success: true
+                });
             });
         }
     });
 
+
+    server.route({
+        method: 'PAtCH',
+        path: '/users/{id}',
+        config: {
+            auth: {
+                strategy: 'session',
+                scope: 'admin'
+            },
+            validate: {
+                params: {
+                    id: Joi.string().invalid('000000000000000000000000')
+                }
+
+            }
+        },
+        handler: function (request, reply) {
+
+            const id = request.params.id;
+
+            console.log(request.params.id);
+
+            const update = {
+                $set: {
+                    "isActive": true,
+                    "verification.validated": true,
+                    "verification.timeValidated": new Date()
+                }
+            };
+
+            User.findByIdAndUpdate(id, update, (err, user) => {
+
+                if (err) {
+                    return reply(err);
+                }
+
+                if (!user) {
+                    return reply(Boom.notFound('Document not found.'));
+                }
+
+                reply({
+                    success: true
+                });
+            });
+        }
+    });
 
     next();
 };
